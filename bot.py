@@ -92,8 +92,19 @@ def download_img(word, index):
 
 # 获取当前更新日期
 update_date = datetime.now().strftime('%Y-%m-%d')
-md_output = f"\n"
-md_output += f"# 每日素材库 更新日期：{update_date}\n\n"
+
+# 初始化 Markdown 内容
+md_output = f"\n" # 保留隐藏标记供 Title 使用
+md_output += f"## 💡 使用指南\n\n"
+md_output += f"# 每日素材库\n\n"
+md_output += f"**📅 更新日期：{update_date}**\n\n"
+md_output += "> **📢 温馨提示：**\n"
+md_output += "* **更新频率**：每日准时更新 5 大热门赛道，紧跟全网热点。\n"
+md_output += "* **发布建议**：每篇文章建议仅在公众号发布一次，避免雷同，保护账号权重。\n"
+md_output += "* **手机办公**：点击右下角按钮复制后，可直接粘贴到【公众号助手App】，手机即可轻松发文。\n"
+md_output += "* **操作逻辑**：点击上方 Tab 切换赛道。若内容未更新，请尝试刷新页面。\n"
+md_output += "* **意见反馈**：使用中有任何建议或遇到问题，请随时联系开发者反馈。\n\n"
+md_output += "---\n\n"
 
 for i, (cat, p) in enumerate(zip(categories, prompts)):
     print(f"正在处理赛道: {cat}...")

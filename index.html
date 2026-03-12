@@ -86,6 +86,9 @@
         const AUTH_KEY = "finland_news_auth_v2";
         const PASSWORD = ""; // GitHub Action 会动态替换此处
 
+        let currentTabIndex = 0;
+        let totalTabs = 0;
+
         // 1. 初始化验证逻辑
         window.onload = () => {
             loadMarkdown(); 
@@ -162,6 +165,43 @@
             } catch (err) {
                 contentArea.innerHTML = `<div style="color:red; padding:20px;">内容加载失败: ${err.message}</div>`;
             }
+
+            // --- 新增：左右滑动切换逻辑 ---
+            let touchStartX = 0;
+            let touchEndX = 0;
+
+            // 监听手指按下
+            document.addEventListener('touchstart', e => {
+                touchStartX = e.changedTouches[0].screenX;
+            }, false);
+
+            // 监听手指抬起
+            document.addEventListener('touchend', e => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            }, false);
+
+            function handleSwipe() {
+                const swipeThreshold = 80; // 滑动阈值，超过80像素才触发
+                const tabBar = document.getElementById('tab-bar');
+                const tabs = tabBar.querySelectorAll('.tab-btn');
+                totalTabs = tabs.length;
+
+                // 向左滑（显示下一个 Tab）
+                if (touchStartX - touchEndX > swipeThreshold) {
+                    if (currentTabIndex < totalTabs - 1) {
+                        currentTabIndex++;
+                        tabs[currentTabIndex].click(); // 模拟点击
+                    }
+                }
+                // 向右滑（显示上一个 Tab）
+                if (touchEndX - touchStartX > swipeThreshold) {
+                    if (currentTabIndex > 0) {
+                        currentTabIndex--;
+                        tabs[currentTabIndex].click(); // 模拟点击
+                    }
+                }
+            }
         }
 
         // 3. 样式转换器 (关键：绝对路径与公众号标签优化)
@@ -192,11 +232,16 @@
         }
 
         function switchTab(e, index) {
+            currentTabIndex = index; // 更新全局索引
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
             e.currentTarget.classList.add('active');
             document.getElementById(`section-${index}`).classList.add('active');
-            window.scrollTo(0, 0);
+            
+            // 自动滚动 Tab 栏，确保选中的 Tab 在手机屏幕可视区域
+            e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            
+            window.scrollTo(0, 0); 
         }
 
         // 4. 一键复制功能
