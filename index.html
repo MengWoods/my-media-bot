@@ -26,8 +26,25 @@
         /* 内容主容器 */
         #app { display: block; }
 
+        /* 定义淡入动画 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 应用于内容赛道 */
+        .content-section {
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+            animation: fadeIn 0.4s ease-out; /* 0.4秒淡入并轻微向上位移 */
+        }
+
         /* Tab 导航 */
         .tabs { 
+            scroll-behavior: smooth; /* 让 Tab 栏自身的滚动也变平滑 */
             display: flex; overflow-x: auto; background: #fff; 
             border-bottom: 2px solid #eee; position: sticky; top: 0; 
             z-index: 99; margin-bottom: 20px; 
@@ -245,15 +262,25 @@
 
         function switchTab(e, index) {
             currentTabIndex = index; // 更新全局索引
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            
+            // 1. 切换按钮激活状态
+            const tabs = document.querySelectorAll('.tab-btn');
+            tabs.forEach(b => b.classList.remove('active'));
+            const activeTab = tabs[index];
+            activeTab.classList.add('active');
+
+            // 2. 切换内容显示
             document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-            e.currentTarget.classList.add('active');
             document.getElementById(`section-${index}`).classList.add('active');
-            
-            // 自动滚动 Tab 栏，确保选中的 Tab 在手机屏幕可视区域
-            e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-            
-            window.scrollTo(0, 0); 
+
+            // 3. 核心：让上方 Tab 标签自动移动到屏幕中央
+            activeTab.scrollIntoView({
+                behavior: 'smooth', // 平滑滚动
+                inline: 'center',   // 水平居中显示
+                block: 'nearest'    // 垂直方向不动
+            });
+
+            window.scrollTo(0, 0); // 回到文章顶部
         }
 
         // 4. 一键复制功能
