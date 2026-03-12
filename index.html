@@ -2,88 +2,133 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>每日爆款素材库</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>芬兰日报 - 素材库</title>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #f5f5f5; margin: 0; padding-bottom: 50px; }
-        #lock-screen { position: fixed; top:0; left:0; width:100%; height:100%; background:#fff; z-index:999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .tabs { display: flex; background: #fff; overflow-x: auto; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #ddd; }
-        .tab-btn { flex: 0 0 auto; padding: 15px 20px; border: none; background: none; font-size: 15px; font-weight: bold; }
-        .tab-btn.active { color: #07c160; border-bottom: 3px solid #07c160; }
-        .container { padding: 15px; max-width: 600px; margin: auto; }
-        .content-card { display: none; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .content-card.active { display: block; }
-        .copy-btn { width: 100%; padding: 15px; background: #07c160; color: white; border: none; border-radius: 8px; margin-bottom: 15px; font-weight: bold; cursor: pointer; }
-        h2 { color: #333; font-size: 20px; line-height: 1.4; }
-        img { width: 100%; border-radius: 8px; margin: 10px 0; }
+        body { font-family: -apple-system, sans-serif; max-width: 820px; margin: auto; padding: 20px; line-height: 1.7; color: #333; display: none; /* 初始隐藏，密码通过后显示 */ }
+        #lock-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        
+        /* Tab 样式 */
+        .tabs { display: flex; overflow-x: auto; background: #fff; border-bottom: 2px solid #eee; position: sticky; top: 0; z-index: 99; margin-bottom: 20px; }
+        .tab-btn { padding: 12px 20px; border: none; background: none; cursor: pointer; font-size: 16px; white-space: nowrap; }
+        .tab-btn.active { color: #069249; border-bottom: 3px solid #069249; font-weight: bold; }
+        
+        .content-section { display: none; animation: fadeIn 0.3s; }
+        .content-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* 你原有的样式 */
+        img { max-width: 100%; height: auto; border-radius: 6px; margin: 10px 0; display: block;}
+        .copy-btn { position: fixed; bottom: 20px; right: 20px; background: #069249; color: white; border: none; padding: 12px 20px; border-radius: 8px; font-size: 14px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 100; }
+        strong { color: #bb3e18; }
+        h2 { display: none; } /* 在正文中隐藏 H2，因为已经有 Tab 了 */
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
 
-<div id="lock-screen">
-    <h3>请输入访问密码</h3>
-    <input type="password" id="pass" style="padding:10px; border:1px solid #ddd; border-radius:5px;">
-    <button onclick="checkPass()" style="margin-top:10px; padding:10px 20px; background:#07c160; color:#fff; border:none; border-radius:5px;">进入系统</button>
-</div>
+    <div id="lock-screen">
+        <h3>请输入访问密码</h3>
+        <input type="password" id="pass_input" style="padding:10px; border:1px solid #ddd; border-radius:5px;">
+        <button onclick="checkPass()" style="margin-top:10px; padding:10px 20px; background:#069249; color:#fff; border:none; border-radius:5px; cursor:pointer;">进入系统</button>
+    </div>
 
-<div id="main-content" style="display:none;">
-    <div class="tabs" id="tabList"></div>
-    <div class="container" id="contentList"></div>
-</div>
+    <div id="app">
+        <div class="tabs" id="tab-bar"></div>
+        <div id="content-area">正在加载最新简报...</div>
+        <button class="copy-btn" onclick="copyContent()">复制当前赛道格式</button>
+    </div>
 
-<script>
-    // 这里的数据会被 Python 自动填入
-    const data = [{"category": "今日热点", "title": "今日热点更新中", "img_url": "", "body": "<p>内容正在快马加鞭赶来...</p>"}, {"category": "深度共鸣", "title": "深度共鸣更新中", "img_url": "", "body": "<p>内容正在快马加鞭赶来...</p>"}, {"category": "生活智慧", "title": "生活智慧更新中", "img_url": "", "body": "<p>内容正在快马加鞭赶来...</p>"}, {"category": "扎心现实", "title": "扎心现实更新中", "img_url": "", "body": "<p>内容正在快马加鞭赶来...</p>"}, {"category": "晚年智慧", "title": "晚年智慧更新中", "img_url": "", "body": "<p>内容正在快马加鞭赶来...</p>"}];
-    const correctHash = "你的密码内容"; // 注意：简单起见这里填明文，或者你可以填MD5
+    <script>
+        const AUTH_KEY = "finland_news_auth";
+        const PASSWORD = "8888"; // 你的密码
 
-    function checkPass() {
-        const input = document.getElementById('pass').value;
-        if(input === "8888") { // 设置你的密码
+        // 1. 密码校验逻辑
+        window.onload = () => {
+            if (localStorage.getItem(AUTH_KEY) === PASSWORD) {
+                unlock();
+            }
+        };
+
+        function checkPass() {
+            if (document.getElementById('pass_input').value === PASSWORD) {
+                localStorage.setItem(AUTH_KEY, PASSWORD);
+                unlock();
+            } else { alert("密码错误"); }
+        }
+
+        function unlock() {
             document.getElementById('lock-screen').style.display = 'none';
-            document.getElementById('main-content').style.display = 'block';
-            initPage();
-        } else { alert("密码错误！"); }
-    }
+            document.body.style.display = 'block';
+            loadMarkdown();
+        }
 
-    function initPage() {
-        const tabList = document.getElementById('tabList');
-        const contentList = document.getElementById('contentList');
-        data.forEach((item, i) => {
-            const btn = document.createElement('button');
-            btn.className = `tab-btn ${i === 0 ? 'active' : ''}`;
-            btn.innerText = item.category;
-            btn.onclick = (e) => switchTab(e, i);
-            tabList.appendChild(btn);
+        // 2. 加载与解析 Markdown
+        async function loadMarkdown() {
+            const response = await fetch('news-reports/latest.md');
+            const md = await response.text();
+            
+            // 将 MD 按照 '## ' 切分成不同赛道
+            const sections = md.split('## ').filter(s => s.trim());
+            const tabBar = document.getElementById('tab-bar');
+            const contentArea = document.getElementById('content-area');
 
-            const div = document.createElement('div');
-            div.id = `tab-${i}`;
-            div.className = `content-card ${i === 0 ? 'active' : ''}`;
-            div.innerHTML = `
-                <button class="copy-btn" onclick="copyRichText('art-${i}')">🟢 点击复制富文本（公众号专用）</button>
-                <div id="art-${i}">
-                    <h2>${item.title}</h2>
-                    <img src="${item.img_url}">
-                    ${item.body}
-                </div>
-            `;
-            contentList.appendChild(div);
-        });
-    }
+            sections.forEach((section, index) => {
+                const lines = section.split('\n');
+                const title = lines[0].trim();
+                const contentMd = lines.slice(1).join('\n');
 
-    function switchTab(e, index) {
-        document.querySelectorAll('.content-card').forEach(c => c.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(`tab-${index}`).classList.add('active');
-        e.currentTarget.classList.add('active');
-    }
+                // 创建 Tab 按钮
+                const btn = document.createElement('button');
+                btn.className = `tab-btn ${index === 0 ? 'active' : ''}`;
+                btn.innerText = title;
+                btn.onclick = () => switchTab(index);
+                tabBar.appendChild(btn);
 
-    async function copyRichText(id) {
-        const element = document.getElementById(id);
-        const blob = new Blob([element.innerHTML], { type: 'text/html' });
-        const data = [new ClipboardItem({ 'text/html': blob, 'text/plain': element.innerText })];
-        await navigator.clipboard.write(data);
-        alert("复制成功！请直接去公众号粘贴。");
-    }
-</script>
+                // 创建内容区
+                const div = document.createElement('div');
+                div.id = `section-${index}`;
+                div.className = `content-section ${index === 0 ? 'active' : ''}`;
+                
+                // 处理解析后的样式
+                let html = marked.parse(contentMd);
+                html = applyStyles(html);
+                div.innerHTML = html;
+                contentArea.appendChild(div);
+            });
+        }
+
+        function applyStyles(html) {
+            return html
+                .replace(/src="images\//g, 'src="news-reports/images/') // 修正图片路径
+                .replace(/<p>/g, '<p style="font-size:16px;line-height:1.8;margin-bottom:22px;">')
+                .replace(/<h1/g, '<h1 style="font-size:24px;text-align:center;margin-bottom:20px;"')
+                .replace(/<strong>(.*?)<\/strong>/g, '<strong style="color:#bb3e18;">$1</strong>');
+        }
+
+        function switchTab(index) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.tab-btn')[index].classList.add('active');
+            document.getElementById(`section-${index}`).classList.add('active');
+        }
+
+        // 3. 复制逻辑
+        function copyContent() {
+            const activeSection = document.querySelector('.content-section.active');
+            const wxHTML = `<div style="font-size:16px;line-height:1.8;color:#333;font-family:sans-serif;max-width:677px;margin:auto;">${activeSection.innerHTML}</div>`;
+            
+            const temp = document.createElement("div");
+            temp.innerHTML = wxHTML;
+            document.body.appendChild(temp);
+            const range = document.createRange();
+            range.selectNode(temp);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            document.execCommand("copy");
+            document.body.removeChild(temp);
+            alert("✅ 复制成功，去公众号粘贴吧！");
+        }
+    </script>
 </body>
 </html>

@@ -5,23 +5,22 @@ import google.generativeai as genai
 from datetime import datetime
 
 # ==========================================
-# 开发调试开关
+# 配置区
 # ==========================================
-# 本地测试时设为 True (不调用 API)
-# 上传到 GitHub 前建议设为 False，或者使用下方的自动检测逻辑
+# 自动检测环境：本地没设 Key 则进入 DEBUG 模式
 DEBUG_MODE = os.environ.get("GEMINI_API_KEY") is None 
 
-print(f"--- 当前运行模式: {'DEBUG (模拟)' if DEBUG_MODE else 'PRODUCTION (正式)'} ---")
+# 文件夹准备
+BASE_DIR = "news-reports"
+IMG_DIR = os.path.join(BASE_DIR, "images")
+os.makedirs(IMG_DIR, exist_ok=True)
 
-# 配置 API (仅在非 DEBUG 模式下需要)
+# API 配置
 if not DEBUG_MODE:
     genai.configure(api_key=os.environ["GEMINI_API_KEY"])
     UNSPLASH_KEY = os.environ["UNSPLASH_ACCESS_KEY"]
-    model = genai.GenerativeModel('gemini-1.5-flash')
-
-# 确保图片文件夹存在
-if not os.path.exists('imgs'):
-    os.makedirs('imgs')
+    # 使用你指定的模型名称
+    model = genai.GenerativeModel('models/gemini-flash-latest')
 
 categories = ["今日热点", "深度共鸣", "生活智慧", "扎心现实", "晚年智慧"]
 prompts = [
@@ -33,73 +32,73 @@ prompts = [
 ]
 
 def download_img(word, index):
-    """下载图片并保存到本地"""
+    """下载图片并保存到 news-reports/images/"""
+    local_filename = f"tab_{index}.jpg"
+    local_path = os.path.join(IMG_DIR, local_filename)
+    
     if DEBUG_MODE:
-        return f"https://via.placeholder.com/600x400?text=Debug+Image+{index}"
+        return f"images/{local_filename}" # 调试模式仅返回路径
 
     search_url = f"https://api.unsplash.com/photos/random?query={word}&client_id={UNSPLASH_KEY}"
-    local_path = f"imgs/tab_{index}.jpg"
     try:
         res = requests.get(search_url, timeout=10).json()
         img_url = res['urls']['regular']
         img_data = requests.get(img_url, timeout=15).content
         with open(local_path, 'wb') as handler:
             handler.write(img_data)
-        return local_path
+        # 注意：返回给 Markdown 的路径是相对 news-reports 的
+        return f"images/{local_filename}"
     except Exception as e:
         print(f"图片下载失败 ({word}): {e}")
         return "https://images.unsplash.com/photo-1495020689067-958852a7765e?q=80&w=1000"
 
-results = []
+# 初始化 Markdown 内容
+md_output = f"# 芬兰日报素材库 ({datetime.now().strftime('%Y-%m-%d')})\n\n"
 
 for i, (cat, p) in enumerate(zip(categories, prompts)):
-    print(f"正在生成赛道: {cat}...")
+    print(f"正在处理赛道: {cat}...")
     
     if DEBUG_MODE:
-        # 模拟数据
-        title = f"【测试】{cat}：这是你绝对不能错过的真相！"
-        body = f"<p>这是针对<b>{cat}</b>赛道的模拟测试正文。</p><p>老祖宗说得好：测试千万条，代码第一条。<strong>关注这个绿色加粗文字</strong>，你的生活会更好。</p><p>点击下方按钮即可复制。测试时间：{datetime.now().strftime('%Y-%m-%d %H:%M')}</p>"
-        local_img_path = download_img("test", i)
+        title = f"【测试】{cat}的震撼真相"
+        body = f"这是{cat}赛道的模拟测试内容。请确认网页 Tab 切换和复制功能是否正常。"
+        img_path = download_img("test", i)
     else:
-        # 正式调用 API
-        full_prompt = f"{p} 要求：1.生成标题。2.正文300字。3.最后给一个英文配图关键词如 Keyword:xxx。4.HTML格式，段落用<p>，重要处用<strong>并内联绿色样式。"
+        full_prompt = f"{p} 要求：1.生成一个震撼的标题。2.正文300字左右。3.最后给一个配图关键词如 Keyword:xxx (必须英文)。4.不要包含 ```markdown 标签。"
         try:
             response = model.generate_content(full_prompt)
-            text = response.text.replace('```html', '').replace('```', '').strip()
+            content = response.text.strip()
             
-            lines = [l for l in text.split('\n') if l.strip()]
+            # 解析标题、正文和关键词
+            lines = [l for l in content.split('\n') if l.strip()]
             title = lines[0].replace('#', '').strip()
             
             keyword = "nature"
-            if "Keyword:" in text:
-                keyword = text.split("Keyword:")[-1].strip().split()[0]
+            if "Keyword:" in content:
+                keyword = content.split("Keyword:")[-1].strip().split()[0]
             
-            local_img_path = download_img(keyword, i)
+            img_path = download_img(keyword, i)
             
-            body = text.replace(lines[0], '', 1)
+            # 提取正文（去掉第一行和关键词行）
+            body = content.replace(lines[0], '', 1)
             if "Keyword:" in body:
                 body = body.split("Keyword:")[0]
             body = body.strip()
+            
         except Exception as e:
-            print(f"{cat} 生成失败: {e}")
-            title, body, local_img_path = f"{cat}更新中", "<p>内容正在快马加鞭赶来...</p>", ""
+            print(f"{cat} 生成错误: {e}")
+            title, body, img_path = f"{cat} 更新中", "内容获取失败，请稍后再试。", ""
 
-    results.append({
-        "category": cat,
-        "title": title,
-        "img_url": local_img_path,
-        "body": body
-    })
+    # 按照 index.html 的 Tab 切分要求拼接 Markdown
+    md_output += f"## {cat}\n\n"
+    md_output += f"# {title}\n\n"
+    if img_path:
+        md_output += f"![img]({img_path})\n\n"
+    md_output += f"{body}\n\n"
+    md_output += "---\n\n"
 
-# 读取模板并替换
-try:
-    with open('index_template.html', 'r', encoding='utf-8') as f:
-        template = f.read()
+# 保存最终的 Markdown 文件
+md_file_path = os.path.join(BASE_DIR, "latest.md")
+with open(md_file_path, 'w', encoding='utf-8') as f:
+    f.write(md_output)
 
-    final_html = template.replace('{{DATA_JSON}}', json.dumps(results, ensure_ascii=False))
-
-    with open('index.html', 'w', encoding='utf-8') as f:
-        f.write(final_html)
-    print(">>> 恭喜！index.html 已成功生成。")
-except Exception as e:
-    print(f"文件处理出错: {e}")
+print(f">>> 成功！Markdown 已保存至 {md_file_path}")
