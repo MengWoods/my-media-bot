@@ -90,8 +90,10 @@ def download_img(word, index):
         print(f"图片下载失败 ({word}): {e}")
         return "https://images.unsplash.com/photo-1495020689067-958852a7765e?q=80&w=1000"
 
-# 初始化 Markdown 内容
-md_output = f"\n\n"
+# 获取当前更新日期
+update_date = datetime.now().strftime('%Y-%m-%d')
+md_output = f"\n"
+md_output += f"# 每日素材库 更新日期：{update_date}\n\n"
 
 for i, (cat, p) in enumerate(zip(categories, prompts)):
     print(f"正在处理赛道: {cat}...")
