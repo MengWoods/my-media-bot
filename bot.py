@@ -2,11 +2,22 @@ import os
 import json
 import requests
 import google.generativeai as genai
+from datetime import datetime
 
-# 配置 API
-genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-UNSPLASH_KEY = os.environ["UNSPLASH_ACCESS_KEY"]
-model = genai.GenerativeModel('gemini-1.5-flash')
+# ==========================================
+# 开发调试开关
+# ==========================================
+# 本地测试时设为 True (不调用 API)
+# 上传到 GitHub 前建议设为 False，或者使用下方的自动检测逻辑
+DEBUG_MODE = os.environ.get("GEMINI_API_KEY") is None 
+
+print(f"--- 当前运行模式: {'DEBUG (模拟)' if DEBUG_MODE else 'PRODUCTION (正式)'} ---")
+
+# 配置 API (仅在非 DEBUG 模式下需要)
+if not DEBUG_MODE:
+    genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+    UNSPLASH_KEY = os.environ["UNSPLASH_ACCESS_KEY"]
+    model = genai.GenerativeModel('gemini-1.5-flash')
 
 # 确保图片文件夹存在
 if not os.path.exists('imgs'):
@@ -23,61 +34,72 @@ prompts = [
 
 def download_img(word, index):
     """下载图片并保存到本地"""
+    if DEBUG_MODE:
+        return f"https://via.placeholder.com/600x400?text=Debug+Image+{index}"
+
     search_url = f"https://api.unsplash.com/photos/random?query={word}&client_id={UNSPLASH_KEY}"
     local_path = f"imgs/tab_{index}.jpg"
     try:
-        # 获取图片地址
         res = requests.get(search_url, timeout=10).json()
         img_url = res['urls']['regular']
-        # 下载图片内容
         img_data = requests.get(img_url, timeout=15).content
         with open(local_path, 'wb') as handler:
             handler.write(img_data)
-        # 返回相对路径供网页使用
         return local_path
     except Exception as e:
-        print(f"图片下载失败: {e}")
-        # 如果失败，返回一张占位图
+        print(f"图片下载失败 ({word}): {e}")
         return "https://images.unsplash.com/photo-1495020689067-958852a7765e?q=80&w=1000"
 
 results = []
 
 for i, (cat, p) in enumerate(zip(categories, prompts)):
     print(f"正在生成赛道: {cat}...")
-    full_prompt = f"{p} 要求：1.生成标题。2.正文300字。3.最后给一个配图关键词如 Keyword:xxx。4.HTML格式，段落用<p>。"
     
-    try:
-        response = model.generate_content(full_prompt)
-        text = response.text.replace('```html', '').replace('```', '').strip()
-        
-        lines = [l for l in text.split('\n') if l.strip()]
-        title = lines[0].replace('#', '').strip()
-        
-        keyword = "nature"
-        if "Keyword:" in text:
-            keyword = text.split("Keyword:")[-1].strip().split()[0]
-        
-        # 下载并获取本地路径
-        local_img_path = download_img(keyword, i)
-        
-        body = text.replace(lines[0], '', 1)
-        if "Keyword:" in body:
-            body = body.split("Keyword:")[0]
+    if DEBUG_MODE:
+        # 模拟数据
+        title = f"【测试】{cat}：这是你绝对不能错过的真相！"
+        body = f"<p>这是针对<b>{cat}</b>赛道的模拟测试正文。</p><p>老祖宗说得好：测试千万条，代码第一条。<strong>关注这个绿色加粗文字</strong>，你的生活会更好。</p><p>点击下方按钮即可复制。测试时间：{datetime.now().strftime('%Y-%m-%d %H:%M')}</p>"
+        local_img_path = download_img("test", i)
+    else:
+        # 正式调用 API
+        full_prompt = f"{p} 要求：1.生成标题。2.正文300字。3.最后给一个英文配图关键词如 Keyword:xxx。4.HTML格式，段落用<p>，重要处用<strong>并内联绿色样式。"
+        try:
+            response = model.generate_content(full_prompt)
+            text = response.text.replace('```html', '').replace('```', '').strip()
+            
+            lines = [l for l in text.split('\n') if l.strip()]
+            title = lines[0].replace('#', '').strip()
+            
+            keyword = "nature"
+            if "Keyword:" in text:
+                keyword = text.split("Keyword:")[-1].strip().split()[0]
+            
+            local_img_path = download_img(keyword, i)
+            
+            body = text.replace(lines[0], '', 1)
+            if "Keyword:" in body:
+                body = body.split("Keyword:")[0]
+            body = body.strip()
+        except Exception as e:
+            print(f"{cat} 生成失败: {e}")
+            title, body, local_img_path = f"{cat}更新中", "<p>内容正在快马加鞭赶来...</p>", ""
 
-        results.append({
-            "category": cat,
-            "title": title,
-            "img_url": local_img_path, # 此时存的是 imgs/tab_x.jpg
-            "body": body.strip()
-        })
-    except Exception as e:
-        print(f"{cat} 生成失败: {e}")
+    results.append({
+        "category": cat,
+        "title": title,
+        "img_url": local_img_path,
+        "body": body
+    })
 
-# 替换并保存 index.html
-with open('index_template.html', 'r', encoding='utf-8') as f:
-    template = f.read()
+# 读取模板并替换
+try:
+    with open('index_template.html', 'r', encoding='utf-8') as f:
+        template = f.read()
 
-final_html = template.replace('{{DATA_JSON}}', json.dumps(results, ensure_ascii=False))
+    final_html = template.replace('{{DATA_JSON}}', json.dumps(results, ensure_ascii=False))
 
-with open('index.html', 'w', encoding='utf-8') as f:
-    f.write(final_html)
+    with open('index.html', 'w', encoding='utf-8') as f:
+        f.write(final_html)
+    print(">>> 恭喜！index.html 已成功生成。")
+except Exception as e:
+    print(f"文件处理出错: {e}")
