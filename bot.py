@@ -77,7 +77,7 @@ def download_img(word, index):
     if DEBUG_MODE:
         return f"images/{local_filename}" # 调试模式仅返回路径
 
-    search_url = f"https://api.unsplash.com/photos/random?query={word}&client_id={UNSPLASH_KEY}"
+    search_url = f"https://api.unsplash.com/photos/random?query={word}&orientation=landscape&&client_id={UNSPLASH_KEY}"
     try:
         res = requests.get(search_url, timeout=10).json()
         img_url = res['urls']['regular']
