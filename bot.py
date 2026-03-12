@@ -31,7 +31,7 @@ if not DEBUG_MODE:
     UNSPLASH_KEY = os.environ["UNSPLASH_ACCESS_KEY"]
     # 使用你指定的模型名称
     model = genai.GenerativeModel(
-        'models/gemini-1.5-pro',
+        'gemini-1.5-pro',
         safety_settings=safety_settings)
 
 # --- 蹭热点、强共鸣版类目 ---
