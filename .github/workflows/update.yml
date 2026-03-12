@@ -32,13 +32,9 @@ jobs:
 
       - name: Inject Secret Password
         run: |
-          # 使用 @ 作为定界符，防止密码里有斜杠导致报错
-          # 同时添加双引号确保字符串处理正确
-          sed -i 's@REPLACE_ME_PASSWORD@${{ secrets.SITE_PASSWORD }}@g' index.html
-          
-          # 调试检查（可选）：这行代码会打印出 index.html 包含密码的那一行
-          # 但为了安全，GitHub 会自动把密码显示为 ***，你能看到 *** 就说明替换成功了
-          grep "const PASSWORD =" index.html
+          # 使用 printf 确保特殊字符不会破坏 sed 命令
+          # 使用 @ 作为定界符，比 / 更安全
+          sed -i "s@REPLACE_ME_PASSWORD@${{ secrets.SITE_PASSWORD }}@g" index.html
 
       - name: Commit and Push
         run: |

@@ -13,22 +13,25 @@
             padding: 20px; 
             line-height: 1.7; 
             color: #333; 
-            display: none; /* 初始隐藏，通过密码后显示 */
+            display: none; /* 初始隐藏，由脚本控制显示 */
         }
         
-        /* 锁屏界面 */
+        /* 锁屏验证界面 */
         #lock-screen { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: white; z-index: 1000; 
-            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            background: #ffffff; z-index: 1000; 
+            display: none; flex-direction: column; align-items: center; justify-content: center; 
         }
         
+        /* 内容主容器 */
+        #app { display: none; }
+
         /* Tab 导航 */
         .tabs { 
             display: flex; overflow-x: auto; background: #fff; 
             border-bottom: 2px solid #eee; position: sticky; top: 0; 
             z-index: 99; margin-bottom: 20px; 
-            scrollbar-width: none; /* 隐藏滚动条 */
+            scrollbar-width: none; 
         }
         .tabs::-webkit-scrollbar { display: none; }
         
@@ -40,17 +43,16 @@
             color: #069249; border-bottom: 3px solid #069249; font-weight: bold; 
         }
         
-        /* 内容区 */
+        /* 内容区动画 */
         .content-section { display: none; animation: fadeIn 0.3s; }
         .content-section.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* 文章内元素样式优化 */
-        img { max-width: 100%; height: auto; border-radius: 6px; margin: 15px 0; display: block; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        h1 { font-size: 24px; text-align: center; margin-bottom: 20px; color: #222; }
-        h2 { display: none; } /* 隐藏 MD 中的二级标题，因为它已作为 Tab 名字 */
-        strong { color: #bb3e18; }
-        p { margin-bottom: 22px; font-size: 16px; line-height: 1.8; }
+        /* 公众号排版风格注入 */
+        img { max-width: 100%; height: auto; border-radius: 8px; margin: 20px auto; display: block; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1 { font-size: 24px; text-align: center; margin-bottom: 25px; color: #000; font-weight: bold; }
+        h2 { display: none; } /* 隐藏 MD 的二级标题，因其已作为 Tab 名字 */
+        p { margin-bottom: 22px; font-size: 16px; line-height: 1.8; color: #333; text-align: justify; }
 
         /* 浮动复制按钮 */
         .copy-btn { 
@@ -63,7 +65,7 @@
         }
         .copy-btn:active { transform: scale(0.95); }
 
-        /* 手机端适配 */
+        /* 移动端适配 */
         @media (max-width: 768px) {
             body { padding: 15px; }
             .copy-btn { bottom: 20px; right: 15px; padding: 12px 20px; }
@@ -74,93 +76,86 @@
 <body>
 
     <div id="lock-screen">
-        <h2 style="display:block; margin-bottom:20px;">身份验证</h2>
+        <h2 style="display:block; margin-bottom:20px; color:#333;">身份验证</h2>
         <input type="password" id="pass_input" placeholder="输入访问密码" 
-               style="padding:12px; border:1px solid #ddd; border-radius:8px; width:200px; text-align:center; font-size:18px;">
+               style="padding:12px; border:1px solid #ddd; border-radius:8px; width:220px; text-align:center; font-size:18px; outline:none;">
         <button onclick="checkPass()" 
-                style="margin-top:15px; padding:12px 40px; background:#069249; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">进入系统</button>
+                style="margin-top:15px; padding:12px 50px; background:#069249; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">进入系统</button>
     </div>
 
     <div id="app">
         <div class="tabs" id="tab-bar"></div>
-        <div id="content-area" style="padding: 10px 5px;">加载中，请稍候...</div>
+        <div id="content-area" style="padding: 10px 5px;">内容加载中...</div>
         <button class="copy-btn" onclick="copyContent()">🟢 复制公众号格式</button>
     </div>
 
     <script>
-        const AUTH_KEY = "finland_news_auth";
-        const PASSWORD = "6666";
+        // 配置项
+        const AUTH_KEY = "finland_news_auth_v2";
+        const PASSWORD = "REPLACE_ME_PASSWORD"; // GitHub Action 会动态替换此处
 
-        // 1. 验证登录状态
+        // 1. 初始化验证逻辑
         window.onload = () => {
             const savedPass = localStorage.getItem(AUTH_KEY);
-            
-            // 关键优化：只有当本地存的密码 和 当前脚本里的密码 完全一致时才自动解锁
+            // 只有当本地存储的密码与当前定义的密码完全一致时才解锁
             if (savedPass && savedPass === PASSWORD) {
                 unlock();
             } else {
-                // 如果不一致，强制清理掉旧的缓存，显示登录界面
-                localStorage.removeItem(AUTH_KEY);
-                document.getElementById('auth_screen').style.display = 'flex';
-                document.body.style.display = 'block';
+                showLogin();
             }
         };
 
+        function showLogin() {
+            document.getElementById('lock-screen').style.display = 'flex';
+            document.getElementById('app').style.display = 'none';
+            document.body.style.display = 'block';
+        }
+
         async function checkPass() {
-            const input = document.getElementById('pass_input').value.trim(); // 自动去除前后空格
+            const inputField = document.getElementById('pass_input');
+            const input = inputField.value.trim(); 
             
             if (input === PASSWORD) {
-                // 登录成功，存入本地
                 localStorage.setItem(AUTH_KEY, input);
                 unlock();
             } else {
-                // 登录失败，不仅弹窗，还要清空输入框和可能的错误缓存
                 localStorage.removeItem(AUTH_KEY); 
                 alert("密码错误，请重新输入");
-                document.getElementById('pass_input').value = "";
+                inputField.value = "";
             }
         }
 
         function unlock() {
             document.getElementById('lock-screen').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
             document.body.style.display = 'block';
             loadMarkdown();
         }
 
-        // 2. 加载 Markdown 数据
+        // 2. 加载与解析内容
         async function loadMarkdown() {
             const contentArea = document.getElementById('content-area');
             try {
-                // 使用相对路径，并增加随机数防止缓存
-                const response = await fetch('./news-reports/latest.md?v=' + Math.random());
-                if (!response.ok) throw new Error("无法获取内容文件 (404)");
+                // 获取内容，增加随机参数防止浏览器缓存
+                const response = await fetch('./news-reports/latest.md?v=' + Date.now());
+                if (!response.ok) throw new Error("无法读取内容文件");
                 
                 const md = await response.text();
-                contentArea.innerHTML = ""; // 清空提示
+                contentArea.innerHTML = ""; 
 
-                // 按照 '## ' 切分赛道
-                // 使用正则表达式：匹配以 "## " 开头，且前面是换行符（或文件开头）的内容
-                // 这样就不会误切 "### " 了
-                const sections = md.split(/\n## /g).filter(s => s.trim());
-                if (sections.length === 0) {
-                    contentArea.innerHTML = "文件内容格式不正确（未找到 ## 赛道标记）";
-                    return;
-                }
-
+                // 核心修复：精准匹配赛道标题 (## )
+                const processedMd = md.startsWith('## ') ? '\n' + md : md;
+                const sections = processedMd.split(/\n## /g).filter(s => s.trim());
+                
                 const tabBar = document.getElementById('tab-bar');
                 tabBar.innerHTML = "";
 
                 sections.forEach((section, index) => {
-                    // 过滤掉可能的顶级大标题（如果第一部分不是赛道的话）
-                    if (index === 0 && !section.startsWith('## ') && sections.length > 5) {
-                        // 如果有 6 部分且第一部分没标题，通常是文件开头的总标题，跳过
-                    }
-
                     const lines = section.split('\n');
                     const title = lines[0].trim();
                     const contentMd = lines.slice(1).join('\n');
 
-                    // 创建 Tab
+                    // 创建 Tab 按钮
                     const btn = document.createElement('button');
                     btn.className = `tab-btn ${index === 0 ? 'active' : ''}`;
                     btn.innerText = title;
@@ -172,43 +167,39 @@
                     div.id = `section-${index}`;
                     div.className = `content-section ${index === 0 ? 'active' : ''}`;
                     
-                    // 解析并注入样式
+                    // 解析并应用公众号风格
                     let rawHtml = window.marked.parse(contentMd);
                     div.innerHTML = applyStyles(rawHtml);
                     contentArea.appendChild(div);
                 });
             } catch (err) {
-                contentArea.innerHTML = `<div style="color:red; padding:20px;">错误: ${err.message}<br>请检查 news-reports/latest.md 是否存在。</div>`;
+                contentArea.innerHTML = `<div style="color:red; padding:20px;">内容加载失败: ${err.message}</div>`;
             }
         }
 
+        // 3. 样式转换器 (关键：绝对路径与公众号标签优化)
         function applyStyles(html) {
+            // 获取当前基础网址，确保图片在公众号后台可见
+            const baseUrl = window.location.href.split('index.html')[0].split('?')[0];
+
             return html
-                // 1. 核心：修正图片相对路径（保持你原有的逻辑不动）
-                .replace(/src="images\//g, 'src="./news-reports/images/')
-
-                .replace(/<img (.*?)>/g, '<img $1 style="max-width:100%; height:auto; border-radius:8px; margin:20px auto; display:block; box-shadow:0 4px 12px rgba(0,0,0,0.1);">')
-                // 增加：给加粗文字一个小底色，微信粘贴后非常像专业排版
-                .replace(/<strong>(.*?)<\/strong>/g, '<strong style="color:#bb3e18;font-weight:bold;background-color:#fff5f5;padding:0 3px;border-radius:2px;">$1</strong>')
-                // 增加：如果是引用或金句（Markdown 的 > 语法），渲染成灰色边框
-                .replace(/<blockquote>(.*?)<\/blockquote>/g, '<div style="border-left:4px solid #ddd;padding-left:15px;color:#666;font-style:italic;margin:20px 0;">$1</div>')
-                // 2. 新增：渲染三级小标题 (###) 
-                // 样式：绿色左边框 + 浅绿色背景底衬，非常有公众号质感
-                .replace(/<h3>(.*?)<\/h3>/g, 
-                    '<h3 style="font-size:18px; color:#069249; border-left:5px solid #069249; padding:5px 12px; margin:28px 0 15px 0; background-color:#f4f9f6; font-weight:bold; line-height:1.5;">$1</h3>')
-
-                // 3. 优化：段落样式
-                // 增加 text-align:justify 让文字两端对齐，看起来更整齐
+                // 图片路径转换及美化
+                .replace(/src="images\//g, `src="${baseUrl}news-reports/images/`)
+                .replace(/<img (.*?)>/g, '<img $1 style="max-width:100%;height:auto;border-radius:8px;margin:20px auto;display:block;box-shadow:0 4px 12px rgba(0,0,0,0.1);">')
+                
+                // 重点加粗 (Strong) 样式
+                .replace(/<strong>(.*?)<\/strong>/g, '<strong style="color:#bb3e18;font-weight:bold;background-color:#fff5f5;padding:0 3px;">$1</strong>')
+                
+                // 小标题 (H3) 样式
+                .replace(/<h3>(.*?)<\/h3>/g, '<h3 style="font-size:18px;color:#069249;border-left:5px solid #069249;padding:5px 12px;margin:28px 0 15px 0;background-color:#f4f9f6;font-weight:bold;">$1</h3>')
+                
+                // 引用 (Blockquote) 样式
+                .replace(/<blockquote>([\s\S]*?)<\/blockquote>/g, '<div style="border-left:4px solid #ddd;padding:15px;color:#666;background:#f9f9f9;margin:20px 0;">$1</div>')
+                
+                // 正文段落优化
                 .replace(/<p>/g, '<p style="font-size:16px;line-height:1.8;margin-bottom:22px;color:#333;text-align:justify;">')
-
-                // 4. 保持/微调：主标题样式
-                .replace(/<h1/g, '<h1 style="font-size:24px;text-align:center;margin-bottom:25px;font-weight:bold;color:#000;"')
-
-                // 5. 优化：重点内容加粗 (strong)
-                // 增加一点点字间距，让加粗内容更醒目
-                .replace(/<strong>(.*?)<\/strong>/g, '<strong style="color:#bb3e18;font-weight:bold;letter-spacing:0.5px;">$1</strong>')
-
-                // 6. 列表样式
+                
+                // 列表优化
                 .replace(/<ul>/g, '<ul style="padding-left:20px;margin-bottom:20px;">')
                 .replace(/<li>/g, '<li style="margin-bottom:10px;line-height:1.6;">');
         }
@@ -218,15 +209,14 @@
             document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
             e.currentTarget.classList.add('active');
             document.getElementById(`section-${index}`).classList.add('active');
-            window.scrollTo(0, 0); // 切换后回到顶部
+            window.scrollTo(0, 0);
         }
 
-        // 3. 微信一键复制
+        // 4. 一键复制功能
         function copyContent() {
             const activeSection = document.querySelector('.content-section.active');
             if (!activeSection) return;
 
-            // 构造符合微信后台抓取的富文本容器
             const wxHTML = `
                 <div style="font-size:16px;line-height:1.8;color:#333;font-family:sans-serif;max-width:677px;margin:auto;padding:10px;">
                     ${activeSection.innerHTML}
@@ -246,9 +236,9 @@
 
             try {
                 document.execCommand("copy");
-                alert("✅ 已复制富文本！请去公众号后台直接粘贴。");
+                alert("✅ 已复制！请直接粘贴到公众号后台。");
             } catch (err) {
-                alert("复制失败，请手动选择文字复制。");
+                alert("复制失败，请尝试手动选择文字复制。");
             }
 
             document.body.removeChild(temp);
