@@ -166,39 +166,52 @@
                 contentArea.innerHTML = `<div style="color:red; padding:20px;">内容加载失败: ${err.message}</div>`;
             }
 
-            // --- 新增：左右滑动切换逻辑 ---
+            // --- 优化后的左右滑动切换逻辑 ---
             let touchStartX = 0;
-            let touchEndX = 0;
+            let touchStartY = 0; // 增加 Y 轴记录，防止上下滚动时误触
 
-            // 监听手指按下
             document.addEventListener('touchstart', e => {
+                // 检查触摸点是否在 Tab 栏内
+                const isClickInTabBar = e.target.closest('#tab-bar');
+                if (isClickInTabBar) {
+                    touchStartX = -1; // 标记：如果在 Tab 栏操作，则不触发逻辑
+                    return;
+                }
                 touchStartX = e.changedTouches[0].screenX;
-            }, false);
+                touchStartY = e.changedTouches[0].screenY;
+            }, { passive: true });
 
-            // 监听手指抬起
             document.addEventListener('touchend', e => {
-                touchEndX = e.changedTouches[0].screenX;
-                handleSwipe();
-            }, false);
+                if (touchStartX === -1) return; // 如果是从 Tab 栏开始的滑动，直接忽略
+                
+                const touchEndX = e.changedTouches[0].screenX;
+                const touchEndY = e.changedTouches[0].screenY;
+                
+                const deltaX = touchStartX - touchEndX;
+                const deltaY = Math.abs(touchStartY - touchEndY);
+                
+                // 逻辑判定：
+                // 1. X 轴滑动距离超过 80 像素
+                // 2. Y 轴偏移不能太大（防止用户只是想上下翻页阅读时误触发）
+                if (Math.abs(deltaX) > 80 && deltaY < 100) {
+                    handleSwipe(deltaX);
+                }
+            }, { passive: true });
 
-            function handleSwipe() {
-                const swipeThreshold = 80; // 滑动阈值，超过80像素才触发
+            function handleSwipe(deltaX) {
                 const tabBar = document.getElementById('tab-bar');
                 const tabs = tabBar.querySelectorAll('.tab-btn');
-                totalTabs = tabs.length;
+                const totalTabs = tabs.length;
 
-                // 向左滑（显示下一个 Tab）
-                if (touchStartX - touchEndX > swipeThreshold) {
+                if (deltaX > 0) { // 向左滑 -> 下一个
                     if (currentTabIndex < totalTabs - 1) {
                         currentTabIndex++;
-                        tabs[currentTabIndex].click(); // 模拟点击
+                        tabs[currentTabIndex].click();
                     }
-                }
-                // 向右滑（显示上一个 Tab）
-                if (touchEndX - touchStartX > swipeThreshold) {
+                } else { // 向右滑 -> 上一个
                     if (currentTabIndex > 0) {
                         currentTabIndex--;
-                        tabs[currentTabIndex].click(); // 模拟点击
+                        tabs[currentTabIndex].click();
                     }
                 }
             }
