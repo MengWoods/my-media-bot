@@ -63,7 +63,16 @@ for i, (cat, p) in enumerate(zip(categories, prompts)):
         body = f"这是{cat}赛道的模拟测试内容。请确认网页 Tab 切换和复制功能是否正常。"
         img_path = download_img("test", i)
     else:
-        full_prompt = f"{p} 要求：1.生成一个震撼的标题。2.正文50字左右。3.最后给一个配图关键词如 Keyword:xxx (必须英文)。4.不要包含 ```markdown 标签。"
+        full_prompt = (
+                f"{p}\n\n"
+                "要求：\n"
+                "1. 生成一个震撼的标题（不带#号）。\n"
+                "2. 正文300字左右，语言要有感染力。\n"
+                "3. 核心金句和重点内容请使用 **加粗** 语法。\n"
+                "4. 根据内容逻辑，适当使用 ### 加上小标题进行分段（每篇2-3个）。\n"
+                "5. 最后给一个英文配图关键词，格式为 Keyword:xxx。\n"
+                "6. 不要包含 ```markdown 这种外壳标签。"
+            )
         try:
             response = model.generate_content(full_prompt)
             content = response.text.strip()

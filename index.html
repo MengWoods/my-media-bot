@@ -134,7 +134,9 @@
                 contentArea.innerHTML = ""; // 清空提示
 
                 // 按照 '## ' 切分赛道
-                const sections = md.split('## ').filter(s => s.trim());
+                // 使用正则表达式：匹配以 "## " 开头，且前面是换行符（或文件开头）的内容
+                // 这样就不会误切 "### " 了
+                const sections = md.split(/\n## /g).filter(s => s.trim());
                 if (sections.length === 0) {
                     contentArea.innerHTML = "文件内容格式不正确（未找到 ## 赛道标记）";
                     return;
@@ -177,12 +179,26 @@
 
         function applyStyles(html) {
             return html
-                // 核心：修正图片相对路径
+                // 1. 核心：修正图片相对路径（保持你原有的逻辑不动）
                 .replace(/src="images\//g, 'src="./news-reports/images/')
-                // 微信公众号风格注入
-                .replace(/<p>/g, '<p style="font-size:16px;line-height:1.8;margin-bottom:22px;color:#333;">')
+
+                // 2. 新增：渲染三级小标题 (###) 
+                // 样式：绿色左边框 + 浅绿色背景底衬，非常有公众号质感
+                .replace(/<h3>(.*?)<\/h3>/g, 
+                    '<h3 style="font-size:18px; color:#069249; border-left:5px solid #069249; padding:5px 12px; margin:28px 0 15px 0; background-color:#f4f9f6; font-weight:bold; line-height:1.5;">$1</h3>')
+
+                // 3. 优化：段落样式
+                // 增加 text-align:justify 让文字两端对齐，看起来更整齐
+                .replace(/<p>/g, '<p style="font-size:16px;line-height:1.8;margin-bottom:22px;color:#333;text-align:justify;">')
+
+                // 4. 保持/微调：主标题样式
                 .replace(/<h1/g, '<h1 style="font-size:24px;text-align:center;margin-bottom:25px;font-weight:bold;color:#000;"')
-                .replace(/<strong>(.*?)<\/strong>/g, '<strong style="color:#bb3e18;font-weight:bold;">$1</strong>')
+
+                // 5. 优化：重点内容加粗 (strong)
+                // 增加一点点字间距，让加粗内容更醒目
+                .replace(/<strong>(.*?)<\/strong>/g, '<strong style="color:#bb3e18;font-weight:bold;letter-spacing:0.5px;">$1</strong>')
+
+                // 6. 列表样式
                 .replace(/<ul>/g, '<ul style="padding-left:20px;margin-bottom:20px;">')
                 .replace(/<li>/g, '<li style="margin-bottom:10px;line-height:1.6;">');
         }
