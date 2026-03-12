@@ -53,7 +53,7 @@ def download_img(word, index):
         return "https://images.unsplash.com/photo-1495020689067-958852a7765e?q=80&w=1000"
 
 # 初始化 Markdown 内容
-md_output = f"# 芬兰日报素材库 ({datetime.now().strftime('%Y-%m-%d')})\n\n"
+md_output = f"\n\n"
 
 for i, (cat, p) in enumerate(zip(categories, prompts)):
     print(f"正在处理赛道: {cat}...")
@@ -63,7 +63,7 @@ for i, (cat, p) in enumerate(zip(categories, prompts)):
         body = f"这是{cat}赛道的模拟测试内容。请确认网页 Tab 切换和复制功能是否正常。"
         img_path = download_img("test", i)
     else:
-        full_prompt = f"{p} 要求：1.生成一个震撼的标题。2.正文300字左右。3.最后给一个配图关键词如 Keyword:xxx (必须英文)。4.不要包含 ```markdown 标签。"
+        full_prompt = f"{p} 要求：1.生成一个震撼的标题。2.正文50字左右。3.最后给一个配图关键词如 Keyword:xxx (必须英文)。4.不要包含 ```markdown 标签。"
         try:
             response = model.generate_content(full_prompt)
             content = response.text.strip()
