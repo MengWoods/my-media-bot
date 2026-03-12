@@ -182,6 +182,11 @@
                 // 1. 核心：修正图片相对路径（保持你原有的逻辑不动）
                 .replace(/src="images\//g, 'src="./news-reports/images/')
 
+                .replace(/<img (.*?)>/g, '<img $1 style="max-width:100%; height:auto; border-radius:8px; margin:20px auto; display:block; box-shadow:0 4px 12px rgba(0,0,0,0.1);">')
+                // 增加：给加粗文字一个小底色，微信粘贴后非常像专业排版
+                .replace(/<strong>(.*?)<\/strong>/g, '<strong style="color:#bb3e18;font-weight:bold;background-color:#fff5f5;padding:0 3px;border-radius:2px;">$1</strong>')
+                // 增加：如果是引用或金句（Markdown 的 > 语法），渲染成灰色边框
+                .replace(/<blockquote>(.*?)<\/blockquote>/g, '<div style="border-left:4px solid #ddd;padding-left:15px;color:#666;font-style:italic;margin:20px 0;">$1</div>')
                 // 2. 新增：渲染三级小标题 (###) 
                 // 样式：绿色左边框 + 浅绿色背景底衬，非常有公众号质感
                 .replace(/<h3>(.*?)<\/h3>/g, 
