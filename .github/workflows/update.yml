@@ -32,9 +32,13 @@ jobs:
 
       - name: Inject Secret Password
         run: |
-          # 使用 sed 将 index.html 中的占位符替换为 GitHub Secret
-          # 注意：为了安全，这里直接使用环境变量注入
-          sed -i "s/REPLACE_ME_PASSWORD/${{ secrets.SITE_PASSWORD }}/g" index.html
+          # 使用 @ 作为定界符，防止密码里有斜杠导致报错
+          # 同时添加双引号确保字符串处理正确
+          sed -i 's@REPLACE_ME_PASSWORD@${{ secrets.SITE_PASSWORD }}@g' index.html
+          
+          # 调试检查（可选）：这行代码会打印出 index.html 包含密码的那一行
+          # 但为了安全，GitHub 会自动把密码显示为 ***，你能看到 *** 就说明替换成功了
+          grep "const PASSWORD =" index.html
 
       - name: Commit and Push
         run: |

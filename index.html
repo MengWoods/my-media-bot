@@ -93,26 +93,31 @@
 
         // 1. 验证登录状态
         window.onload = () => {
-            // 1. 自动更新标题日期
-            const today = new Date();
-            const dateString = today.getFullYear() + '-' + (today.getMonth() + 1).toString().padStart(2, '0') + '-' + today.getDate().toString().padStart(2, '0');
-            document.title = `每日素材库 (${dateString})`;
-
-            // 2. 原有的登录逻辑
-            if (localStorage.getItem(AUTH_KEY) === PASSWORD) {
+            const savedPass = localStorage.getItem(AUTH_KEY);
+            
+            // 关键优化：只有当本地存的密码 和 当前脚本里的密码 完全一致时才自动解锁
+            if (savedPass && savedPass === PASSWORD) {
                 unlock();
             } else {
-                document.body.style.display = 'block'; 
+                // 如果不一致，强制清理掉旧的缓存，显示登录界面
+                localStorage.removeItem(AUTH_KEY);
+                document.getElementById('auth_screen').style.display = 'flex';
+                document.body.style.display = 'block';
             }
         };
 
-        function checkPass() {
-            const val = document.getElementById('pass_input').value;
-            if (val === PASSWORD) {
-                localStorage.setItem(AUTH_KEY, PASSWORD);
+        async function checkPass() {
+            const input = document.getElementById('pass_input').value.trim(); // 自动去除前后空格
+            
+            if (input === PASSWORD) {
+                // 登录成功，存入本地
+                localStorage.setItem(AUTH_KEY, input);
                 unlock();
-            } else { 
-                alert("密码错误，请重新输入"); 
+            } else {
+                // 登录失败，不仅弹窗，还要清空输入框和可能的错误缓存
+                localStorage.removeItem(AUTH_KEY); 
+                alert("密码错误，请重新输入");
+                document.getElementById('pass_input').value = "";
             }
         }
 
