@@ -35,7 +35,7 @@ if not DEBUG_MODE:
         safety_settings=safety_settings)
 
 # --- 蹭热点、强共鸣版类目 ---
-categories = ["🚨 紧急提醒", "🔥 社交热议", "👩‍❤️‍👨 夫妻共鸣", "💔 寒心真相", "🌙 深夜私语"]
+categories = ["🚨 提醒", "🔥 社会", "👩‍❤️‍👨 夫妻", "💔 寒心", "🌙 深夜"]
 
 prompts = [
     # 🚨 紧急提醒：利用“避险心理”，主打信息差
@@ -95,7 +95,7 @@ update_date = datetime.now().strftime('%Y-%m-%d')
 
 # 初始化 Markdown 内容
 md_output = f"\n" # 保留隐藏标记供 Title 使用
-md_output += f"## 💡 使用指南\n\n"
+md_output += f"## 💡 指南\n\n"
 md_output += f"# 每日素材库\n\n"
 md_output += f"**📅 更新日期：{update_date}**\n\n"
 md_output += "> **📢 温馨提示：**\n"
