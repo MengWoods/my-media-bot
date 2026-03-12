@@ -1,0 +1,29 @@
+name: Daily Update
+on:
+  schedule:
+    - cron: '0 0 * * *' # 每天北京时间早上 8 点运行
+  workflow_dispatch: # 允许手动点击运行
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+      - name: Install dependencies
+        run: pip install google-generativeai requests
+      - name: Run bot
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+        run: python bot.py
+      - name: Commit and Push
+        run: |
+          git config --global user.name "Bot"
+          git config --global user.email "bot@github.com"
+          git add index.html
+          git commit -m "Daily content update"
+          git push
