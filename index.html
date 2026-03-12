@@ -32,6 +32,7 @@
             border-bottom: 2px solid #eee; position: sticky; top: 0; 
             z-index: 99; margin-bottom: 20px; 
             scrollbar-width: none; 
+            -webkit-overflow-scrolling: touch;
         }
         .tabs::-webkit-scrollbar { display: none; }
         
@@ -166,55 +167,53 @@
                 contentArea.innerHTML = `<div style="color:red; padding:20px;">内容加载失败: ${err.message}</div>`;
             }
 
-            // --- 优化后的左右滑动切换逻辑 ---
+            // --- 终极修复：彻底隔离 Tab 栏滑动的逻辑 ---
             let touchStartX = 0;
-            let touchStartY = 0; // 增加 Y 轴记录，防止上下滚动时误触
+            let touchStartY = 0;
+            let isTabArea = false; // 新增：标记是否从 Tab 栏开始滑动
 
             document.addEventListener('touchstart', e => {
-                // 检查触摸点是否在 Tab 栏内
-                const isClickInTabBar = e.target.closest('#tab-bar');
-                if (isClickInTabBar) {
-                    touchStartX = -1; // 标记：如果在 Tab 栏操作，则不触发逻辑
-                    return;
+                // 1. 检查起始点是否在 tab-bar 内部
+                if (e.target.closest('#tab-bar')) {
+                    isTabArea = true; 
+                    return; 
                 }
+                
+                // 2. 如果不是 Tab 栏，正常记录坐标
+                isTabArea = false;
                 touchStartX = e.changedTouches[0].screenX;
                 touchStartY = e.changedTouches[0].screenY;
             }, { passive: true });
 
             document.addEventListener('touchend', e => {
-                if (touchStartX === -1) return; // 如果是从 Tab 栏开始的滑动，直接忽略
-                
+                // 3. 如果是从 Tab 栏开始滑动的，直接退出，不执行切换逻辑
+                if (isTabArea) return;
+
                 const touchEndX = e.changedTouches[0].screenX;
                 const touchEndY = e.changedTouches[0].screenY;
                 
                 const deltaX = touchStartX - touchEndX;
                 const deltaY = Math.abs(touchStartY - touchEndY);
                 
-                // 逻辑判定：
-                // 1. X 轴滑动距离超过 80 像素
-                // 2. Y 轴偏移不能太大（防止用户只是想上下翻页阅读时误触发）
+                // 4. 判定条件：横向位移 > 80，且纵向偏移 < 100（说明是横划而非上下翻页）
                 if (Math.abs(deltaX) > 80 && deltaY < 100) {
-                    handleSwipe(deltaX);
+                    const tabBar = document.getElementById('tab-bar');
+                    const tabs = tabBar.querySelectorAll('.tab-btn');
+                    const totalTabs = tabs.length;
+
+                    if (deltaX > 0) { // 向左滑 -> 切换到下一个
+                        if (currentTabIndex < totalTabs - 1) {
+                            currentTabIndex++;
+                            tabs[currentTabIndex].click();
+                        }
+                    } else { // 向右滑 -> 切换到上一个
+                        if (currentTabIndex > 0) {
+                            currentTabIndex--;
+                            tabs[currentTabIndex].click();
+                        }
+                    }
                 }
             }, { passive: true });
-
-            function handleSwipe(deltaX) {
-                const tabBar = document.getElementById('tab-bar');
-                const tabs = tabBar.querySelectorAll('.tab-btn');
-                const totalTabs = tabs.length;
-
-                if (deltaX > 0) { // 向左滑 -> 下一个
-                    if (currentTabIndex < totalTabs - 1) {
-                        currentTabIndex++;
-                        tabs[currentTabIndex].click();
-                    }
-                } else { // 向右滑 -> 上一个
-                    if (currentTabIndex > 0) {
-                        currentTabIndex--;
-                        tabs[currentTabIndex].click();
-                    }
-                }
-            }
         }
 
         // 3. 样式转换器 (关键：绝对路径与公众号标签优化)
