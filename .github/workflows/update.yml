@@ -30,6 +30,12 @@ jobs:
           UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
         run: python bot.py
 
+      - name: Inject Secret Password
+        run: |
+          # 使用 sed 将 index.html 中的占位符替换为 GitHub Secret
+          # 注意：为了安全，这里直接使用环境变量注入
+          sed -i "s/REPLACE_ME_PASSWORD/${{ secrets.SITE_PASSWORD }}/g" index.html
+
       - name: Commit and Push
         run: |
           git config --global user.name "GitHub Action Bot"
