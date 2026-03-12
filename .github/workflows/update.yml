@@ -34,6 +34,17 @@ jobs:
         run: |
           git config --global user.name "GitHub Action Bot"
           git config --global user.email "actions@github.com"
-          # 添加 index.html 和 imgs 文件夹
-          git add index.html imgs/*
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Daily content and image update" && git push)
+          
+          # 1. 确保 imgs 文件夹存在（即便脚本漏掉了这一步）
+          mkdir -p imgs
+          
+          # 2. 添加 index.html 和整个 imgs 文件夹的内容
+          git add index.html imgs/
+          
+          # 3. 只有在有变动时才提交，防止因为没有文件变动而报错
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Daily content and image update $(date +'%Y-%m-%d')"
+            git push
+          fi
