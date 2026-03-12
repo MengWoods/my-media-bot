@@ -13,7 +13,7 @@
             padding: 20px; 
             line-height: 1.7; 
             color: #333; 
-            display: none; /* 初始隐藏，由脚本控制显示 */
+            /* display: none; 初始隐藏，由脚本控制显示 */
         }
         
         /* 锁屏验证界面 */
@@ -24,7 +24,7 @@
         }
         
         /* 内容主容器 */
-        #app { display: none; }
+        #app { display: block; }
 
         /* Tab 导航 */
         .tabs { 
@@ -75,14 +75,6 @@
 </head>
 <body>
 
-    <div id="lock-screen">
-        <h2 style="display:block; margin-bottom:20px; color:#333;">身份验证</h2>
-        <input type="password" id="pass_input" placeholder="输入访问密码" 
-               style="padding:12px; border:1px solid #ddd; border-radius:8px; width:220px; text-align:center; font-size:18px; outline:none;">
-        <button onclick="checkPass()" 
-                style="margin-top:15px; padding:12px 50px; background:#069249; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">进入系统</button>
-    </div>
-
     <div id="app">
         <div class="tabs" id="tab-bar"></div>
         <div id="content-area" style="padding: 10px 5px;">内容加载中...</div>
@@ -92,22 +84,11 @@
     <script>
         // 配置项
         const AUTH_KEY = "finland_news_auth_v2";
-        const PASSWORD = "REPLACE_ME_PASSWORD"; // GitHub Action 会动态替换此处
+        const PASSWORD = ""; // GitHub Action 会动态替换此处
 
         // 1. 初始化验证逻辑
         window.onload = () => {
-            // 强制先获取最新的正确密码（Action 替换后的）
-            const currentSystemPassword = PASSWORD; 
-            const savedPass = localStorage.getItem(AUTH_KEY);
-
-            // 只有当本地存的密码 严格等于 当前系统密码时，才解锁
-            if (savedPass && savedPass === currentSystemPassword) {
-                unlock();
-            } else {
-                // 如果不匹配（比如你改了 Secret），直接删掉本地旧缓存，显示登录框
-                localStorage.removeItem(AUTH_KEY);
-                showLogin();
-            }
+            loadMarkdown(); 
         };
 
         function showLogin() {
