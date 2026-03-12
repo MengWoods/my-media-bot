@@ -4,6 +4,15 @@ import time
 import requests
 import google.generativeai as genai
 from datetime import datetime
+from google.generativeai.types import HarmCategory, HarmBlockThreshold
+
+# 定义安全设置：全部设为 BLOCK_NONE
+safety_settings = {
+    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+}
 
 # ==========================================
 # 配置区
@@ -21,7 +30,9 @@ if not DEBUG_MODE:
     genai.configure(api_key=os.environ["GEMINI_API_KEY"])
     UNSPLASH_KEY = os.environ["UNSPLASH_ACCESS_KEY"]
     # 使用你指定的模型名称
-    model = genai.GenerativeModel('models/gemini-flash-latest')
+    model = genai.GenerativeModel(
+        'models/gemini-flash-latest',
+        safety_settings=safety_settings)
 
 # --- 蹭热点、强共鸣版类目 ---
 categories = ["🚨 紧急提醒", "🔥 社交热议", "👩‍❤️‍👨 夫妻共鸣", "💔 寒心真相", "🌙 深夜私语"]
